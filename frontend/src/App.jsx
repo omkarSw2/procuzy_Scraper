@@ -1,93 +1,111 @@
 import BlogCard from "./components/CustomeComponents/BlogCard";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+import React from "react";
+import BlogLoadingCard from "./components/CustomeComponents/BlogLoadingCard";
+import { useToast } from "@/components/ui/use-toast";
+const getData = async (value) => {
+  try {
+    // console.log("inside get data", value);
+    const res = await fetch(`${import.meta.env.VITE_BASE_API}/medium/${value}`);
+    // if (!res.ok) throw new Error("Failed to fetch data");
+    const data = await res.json();
+    // console.log("data", data);
+    return data;
+  } catch (error) {
+    console.error("Error fetching data:", error.message);
+    throw error;
+  }
+};
 
 export default function App() {
-  const blogArray = [
-    {
-      id: 1,
-      img: "https://placehold.co/500x250",
-      icon: "https://placehold.co/250x250",
-      title: "Mastering React: A Comprehensive Guide",
-      author: "John Doe",
-      date: "May 15, 2023",
-      statusType: false,
-      desc: "  Dive into the world of React and learn how to build powerful web applications.",
-    },
-    {
-      id: 2,
-      img: "https://placehold.co/500x250",
-      icon: "https://placehold.co/250x250",
-      title: "Unleashing the Power of Tailwind CSS",
-      author: "John Doe",
-      date: "May 15, 2023",
-      statusType: true,
-      desc: "Discover how Tailwind CSS can revolutionize your web development workflow.",
-    },
-    {
-      id: 3,
-      img: "https://placehold.co/500x250",
-      icon: "https://placehold.co/250x250",
-      title: "Exploring the Shadcn UI Library",
-      author: "John Doe",
-      date: "May 15, 2023",
-      statusType: false,
-      desc: "Learn how to leverage the Shadcn UI library to build stunning user interfaces.",
-    },
-    {
-      id: 4,
-      img: "https://placehold.co/500x250",
-      icon: "https://placehold.co/250x250",
-      title: "Optimizing Your Next.js Applications",
-      author: "John Doe",
-      date: "May 15, 2023",
-      statusType: true,
-      desc: "Discover best practices for building high-performance Next.js applications.",
-    },
-    {
-      id: 5,
-      img: "https://placehold.co/500x250",
-      icon: "https://placehold.co/250x250",
-      title: "Mastering TypeScript for React Development",
-      author: "John Doe",
-      date: "May 15, 2023",
-      statusType: false,
-      desc: "Enhance your React projects with the power of TypeScript.",
-    },
-    {
-      id: 6,
-      img: "https://placehold.co/500x250",
-      icon: "https://placehold.co/250x250",
-      title: "Building Accessible Web Applications",
-      author: "John Doe",
-      date: "May 15, 2023",
-      statusType: true,
-      desc: "Ensure your web applications are inclusive and accessible to all users.",
-    },
-  ];
+  const [data, setData] = React.useState();
+  const [value, setValue] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(false);
+  const inputRef = React.useRef(null);
+  const { toast } = useToast();
+
+  const handleClick = async () => {
+    if (value.length == 0) {
+      toast({
+        variant: "primary",
+        title: "Field Cannot be empty",
+        description: "Please Enter text to Search",
+      });
+    } else {
+      try {
+        setLoading(true);
+        setError(false);
+        const data = await getData(value);
+        await setData(data);
+        await setLoading(false);
+      } catch (error) {
+        setLoading(false);
+        setError(true);
+        toast({
+          variant: "destructive",
+          title: "Something went Wrong",
+          description: "Something went wrong!.",
+        });
+      }
+    }
+  };
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleClick();
+    }
+  };
+  React.useEffect(() => {
+    inputRef.current.focus();
+  }, []);
+
   return (
     <>
       <div className="container flex justify-center  mt-5">
         <div className="flex w-full max-w-sm items-center space-x-2">
-          <Input type="text" placeholder="Ex: React" />
-          <Button type="submit">Submit</Button>
+          <Input
+            type="text"
+            value={value}
+            ref={inputRef}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ex: React"
+            aria-label="Search"
+          />
+
+          <Button onClick={handleClick} type="submit">
+            Submit
+          </Button>
         </div>
       </div>
       <div className=" mt-10 container">
-        <div className="  grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {blogArray?.map((item) => (
-            <BlogCard
-              key={item.id}
-              img={item.img}
-              icon={item.icon}
-              title={item.title}
-              author={item.author}
-              date={item.date}
-              desc={item.desc}
-              statusType={item.statusType}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <>
+            <div className="  grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <BlogLoadingCard />
+              <BlogLoadingCard />
+              <BlogLoadingCard />
+            </div>
+          </>
+        ) : (
+          <>
+            {" "}
+            <div className="  grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {data?.map((item, ind) => (
+                <BlogCard
+                  key={ind}
+                  imgUrl={item.imgUrl}
+                  categories={item.categories}
+                  title={item.title}
+                  author={item.author}
+                  publicationDate={item.publicationDate}
+                  url={item.url}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </>
   );
